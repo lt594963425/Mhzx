@@ -11,7 +11,9 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -27,7 +29,6 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.github.lzyzsd.jsbridge.BridgeWebView;
 import com.tbruyelle.rxpermissions2.Permission;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
@@ -37,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private String url = "http://106.53.72.109:2020/";
     ProgressBar webViewProgressBar;
 
-    BridgeWebView bridgeWebView;
+    WebView bridgeWebView;
     LinearLayout error_view;
     boolean loadError = false;
 
@@ -61,18 +62,26 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         loadError = false;
-        requestPermissions();
-        showPDLoading("");
         error_view = findViewById(R.id.error_view);
         webViewProgressBar = findViewById(R.id.webView_progressBar);
         bridgeWebView = findViewById(R.id.bridgeWebView);
         TextView refresh_tv = findViewById(R.id.refresh_tv);
+        DisplayMetrics outMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(outMetrics);
+        int heightPixels = outMetrics.heightPixels;
+        bridgeWebView.getLayoutParams().height = (int) (heightPixels * 0.88);
+        bridgeWebView.requestLayout();
+        requestPermissions();
+        showPDLoading("");
+
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED, WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
         refresh_tv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (bridgeWebView != null) {
                     loadError = false;
+                    showPDLoading("");
+                    bridgeWebView.clearCache(true);
                     bridgeWebView.reload();
                 }
             }
@@ -83,16 +92,17 @@ public class MainActivity extends AppCompatActivity {
         bridgeWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         //启用支持javascript
         WebSettings settings = bridgeWebView.getSettings();
-        settings.setSupportZoom(true);// 设置可以支持缩放
-        settings.setBuiltInZoomControls(true);// 设置出现缩放工具 是否使用WebView内置的缩放组件，由浮动在窗口上的缩放控制和手势缩放控制组成，默认false
         settings.setJavaScriptEnabled(true);
-        settings.setDisplayZoomControls(false);//隐藏缩放工具
-        settings.setUseWideViewPort(true);// 扩大比例的缩放
-        settings.setDomStorageEnabled(true);//
+//        settings.setSupportZoom(true);// 设置可以支持缩放
+//        settings.setBuiltInZoomControls(true);// 设置出现缩放工具 是否使用WebView内置的缩放组件，由浮动在窗口上的缩放控制和手势缩放控制组成，默认false
+//        settings.setDisplayZoomControls(false);//隐藏缩放工具
+//        settings.setUseWideViewPort(true);// 扩大比例的缩放
+//        settings.setDomStorageEnabled(true);//
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
-        bridgeWebView.clearCache(true);
+        bridgeWebView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+
         bridgeWebView.loadUrl(url);
         bridgeWebView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -135,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     dismissLoading();
                     if (!loadError) {
-                        error_view.setVisibility(View.INVISIBLE);
+                        error_view.setVisibility(View.GONE);
                         bridgeWebView.setVisibility(View.VISIBLE);
                     }
                 } catch (Exception e) {
